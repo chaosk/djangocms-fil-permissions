@@ -76,9 +76,35 @@ class CMSConfigTestCase(TestCase):
             extension.patch_admin(Poll)
         mock.assert_called_once_with(Poll)
 
+    def test_multiple_apps(self):
+        extension = cms_config.PermissionsCMSExtension()
+        cms_config1 = Mock(
+            spec=[],
+            djangocms_fil_permissions_enabled=True,
+            site_permission_models={Poll: "site"},
+            app_config=Mock(label="blah_cms_config"),
+        )
+        cms_config2 = Mock(
+            spec=[],
+            djangocms_fil_permissions_enabled=True,
+            site_permission_models={Answer: "poll__site"},
+            app_config=Mock(label="blah_cms_config"),
+        )
+        with patch.object(
+            extension, "translate_relation", side_effect=["site", "poll__site"]
+        ):
+            extension.configure_app(cms_config1)
+            extension.configure_app(cms_config2)
+        expected = {Poll: "site", Answer: "poll__site"}
+        self.assertCountEqual(extension.site_permission_models, expected)
+        self.assertIn(Poll, extension.site_permission_models)
+        self.assertEqual(extension.site_permission_models[Poll], "site")
+        self.assertIn(Answer, extension.site_permission_models)
+        self.assertEqual(extension.site_permission_models[Answer], "poll__site")
+
 
 class IntegrationTestCase(TestCase):
-    def test_config_with_multiple_apps(self):
+    def test_integration(self):
         site_permission_models = apps.get_app_config(
             "djangocms_fil_permissions"
         ).cms_extension.site_permission_models
