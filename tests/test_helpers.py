@@ -3,6 +3,7 @@ from unittest.mock import MagicMock, Mock, patch
 from django.apps import apps
 from django.contrib import admin
 from django.test import TestCase
+
 from rules.contrib.admin import ObjectPermissionsModelAdminMixin
 
 from djangocms_fil_permissions.helpers import (
@@ -10,8 +11,8 @@ from djangocms_fil_permissions.helpers import (
     admin_factory,
     get_extension,
     get_site_for_obj,
-    user_has_access_to_site,
     replace_admin_for_model,
+    user_has_access_to_site,
 )
 from djangocms_fil_permissions.test_utils.factories import (
     PollFactory,

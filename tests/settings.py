@@ -5,12 +5,12 @@ HELPER_SETTINGS = {
         "djangocms_fil_permissions.test_utils.polls",
     ],
     "MIGRATION_MODULES": {
-        # "auth": None,
-        # "cms": None,
-        # "menus": None,
-        # "sites": None,
-        # "djangocms_fil_permissions": None,
-        # "djangocms_fil_permissions.test_utils.polls": None
+        "auth": None,
+        "cms": None,
+        "menus": None,
+        "sites": None,
+        "djangocms_fil_permissions": None,
+        "djangocms_fil_permissions.test_utils.polls": None,
     },
     "AUTHENTICATION_BACKENDS": (
         "djangocms_fil_permissions.permissions.SitePermissionBackend",

@@ -3,6 +3,7 @@ from functools import lru_cache
 from django.apps import apps
 from django.contrib import admin
 from django.contrib.sites.models import Site
+
 from rules.contrib.admin import ObjectPermissionsModelAdminMixin
 
 

@@ -96,11 +96,7 @@ class CMSConfigTestCase(TestCase):
             extension.configure_app(cms_config1)
             extension.configure_app(cms_config2)
         expected = {Poll: "site", Answer: "poll__site"}
-        self.assertCountEqual(extension.site_permission_models, expected)
-        self.assertIn(Poll, extension.site_permission_models)
-        self.assertEqual(extension.site_permission_models[Poll], "site")
-        self.assertIn(Answer, extension.site_permission_models)
-        self.assertEqual(extension.site_permission_models[Answer], "poll__site")
+        self.assertDictEqual(extension.site_permission_models, expected)
 
 
 class IntegrationTestCase(TestCase):

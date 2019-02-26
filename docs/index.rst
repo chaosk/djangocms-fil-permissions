@@ -16,6 +16,11 @@ Overview
 Django CMS FIL Permissions provides a way to restrict admin users
 to only access objects related to sites that they have been granted access to.
 
+.. note::
+
+    This addon will only automatically apply site-based permissions
+    to the ModelAdmin of registered models.
+
 Installation
 ------------
 
@@ -26,7 +31,8 @@ Run::
 
 Add ``djangocms_fil_permissions`` to your project's ``INSTALLED_APPS``.
 
-Add ``djangocms_fil_permissions.permissions.SitePermissionBackend``  to your ``AUTHENTICATION_BACKENDS``:
+Add ``djangocms_fil_permissions.permissions.SitePermissionBackend``
+to your ``AUTHENTICATION_BACKENDS``:
 
 .. code-block:: python
 
@@ -68,19 +74,21 @@ in your addon's folder. The most simple configuration looks like this:
             Poll: "site",
         }
 
-In this example, ``Poll`` has a ``site`` field, which is a relation to ``Site`` model.
+In this example, ``Poll`` has a ``site`` field, which is a relation to ``Site``
+model.
 
 :py:class:`CMSAppConfig`
 
     :py:attr:`~djangocms_fil_permissions_enabled`
 
     Your ``cms_config.py`` needs to define a single subclass of ``CMSAppConfig``
-    with ``djangocms_fil_permissions_enabled = True``. This instructs Django CMS
-    to pass your config to FIL Permissions extension.
+    with ``djangocms_fil_permissions_enabled = True``. This instructs
+    Django CMS to pass your config to FIL Permissions extension.
 
     :py:attr:`~site_permission_models`
 
-    This attribute allows for registering models into per-site permission system.
+    This attribute allows for registering models
+    into per-site permission system.
 
     It needs to be a dict of the following format: ``{model: site_relation}``.
 

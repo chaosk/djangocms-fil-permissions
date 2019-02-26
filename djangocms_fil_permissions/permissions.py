@@ -15,13 +15,17 @@ class SitePermissionBackend(object):
     """
 
     def authenticate(self, request, **credentials):
+        """Pass authentication process to the next authentication
+        backend.
+        """
         return None
 
     def has_perm(self, user, perm, obj=None):
         """Checks if ``user` belongs to a site associated with ``obj``.
 
-        Denies access if ``obj`` is registered for site-level permissions
-        and ``user`` does not belong to the same site as ``obj``.
+        Denies access if ``obj`` is registered for site-level
+        permissions and ``user`` does not belong to the same site
+        as ``obj``.
 
         In any other case (``user`` passed the test or ``obj``
         is not registered for site-level permissions,
@@ -37,4 +41,7 @@ class SitePermissionBackend(object):
         return None
 
     def has_module_perms(self, user, app_label):
+        """Pass module permission checking process to the next
+        authentication backend.
+        """
         return None
