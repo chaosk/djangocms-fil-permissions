@@ -1,0 +1,7 @@
+{
+    "package-name": "djangocms-fil-permissions",
+    "installed-apps": [
+        "djangocms_fil_permissions",
+        "rules"
+    ]
+}
