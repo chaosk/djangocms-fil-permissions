@@ -1,35 +1,24 @@
 from collections.abc import Mapping
-from operator import attrgetter
 
 from django.core.exceptions import ImproperlyConfigured
 
 from cms.app_base import CMSAppExtension
 
-from .helpers import replace_admin_for_model
+from .helpers import replace_admin_for_model, translate_relation
 
 
 class PermissionsCMSExtension(CMSAppExtension):
     def __init__(self):
         self.site_permission_models = {}
 
-    def translate_relation(self, relation):
-        """Transforms Django-style related field lookup (foo__bar)
-        into attrgetter instance that can be called with an object
-        to receive the object at the end of defined relation chain.
-
-        :param relation: Django-style field lookup
-        """
-        fields = relation.split("__")
-        return attrgetter(".".join(fields))
-
     def register_model(self, model, site_relation):
         """Registers model for per-site permission system.
 
         :param model: Model class
-        :param site_relation: Related field lookup pointing to a FK to
-                              a Site from the provided model
+        :param site_relation: Related field lookup pointing to a FK/M2M
+                              relation to Site model from the provided model
         """
-        self.site_permission_models[model] = self.translate_relation(site_relation)
+        self.site_permission_models[model] = translate_relation(model, site_relation)
 
     def patch_admin(self, model):
         """Patches the modeladmin for provided `model` to include
@@ -46,7 +35,7 @@ class PermissionsCMSExtension(CMSAppExtension):
         :param definitions: A mapping of {model: site_relation}.
 
         site_relation can be a related field lookup (e.g. foo__site)
-        and must point to a foreign key to Site used
+        and must point to a FK/M2M to Site used
         in permission checking
 
         Example:

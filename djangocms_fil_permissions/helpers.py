@@ -1,8 +1,11 @@
-from functools import lru_cache
+from functools import lru_cache, reduce
 
 from django.apps import apps
 from django.contrib import admin
+from django.contrib.admin.utils import get_fields_from_path
 from django.contrib.sites.models import Site
+from django.core.exceptions import ImproperlyConfigured
+from django.db.models.query import QuerySet
 
 from rules.contrib.admin import ObjectPermissionsModelAdminMixin
 
@@ -13,9 +16,9 @@ def get_extension():
     return app.cms_extension
 
 
-def get_site_for_obj(obj):
-    """Returns a Site that's related to the provided object.
-    Returns None if object's model is not registered for
+def get_sites_for_obj(obj):
+    """Returns a list of Site objects that are related to the provided object.
+    Returns empty list if object's model is not registered for
     per-site permissions.
 
     :param obj: A model object
@@ -24,18 +27,20 @@ def get_site_for_obj(obj):
     try:
         getter = extension.site_permission_models[obj.__class__]
     except KeyError:
-        return
+        return []
     return getter(obj)
 
 
-def user_has_access_to_site(user, site):
-    """Returns True if user is associated with provided site,
+def user_can_access_any_of_sites(user, sites):
+    """Returns True if user is associated with any of the provided sites,
     otherwise returns False.
 
     :param user: User instance
-    :param site: Site instance
+    :param site: List or a queryset of sites
     """
-    return Site.objects.filter(usersite__user=user, pk=site.pk).exists()
+    if not isinstance(sites, QuerySet):
+        sites = [site.pk for site in sites]
+    return Site.objects.filter(usersite__user=user, pk__in=sites).exists()
 
 
 def admin_factory(admin_class, mixin):
@@ -80,3 +85,35 @@ def replace_admin_for_model(model, admin_site=None):
     except KeyError:
         return
     _replace_admin_for_model(modeladmin, ObjectPermissionsModelAdminMixin, admin_site)
+
+
+def translate_relation(model, relation):
+    """Transforms Django-style related field lookup (foo__bar)
+    into attrgetter instance that can be called with an object
+    to retrieve the object at the end of defined relation chain.
+
+    :param relation: Django-style field lookup
+    """
+    fields = get_fields_from_path(model, relation)
+    last_field = fields[-1]
+    if not issubclass(last_field.related_model, Site):
+        raise ImproperlyConfigured(
+            'Relation "{}" does not point to Site model (it targets {} instead).'.format(
+                relation,
+                "{}.{}".format(
+                    last_field.related_model._meta.app_label,
+                    last_field.related_model.__name__,
+                ),
+            )
+        )
+
+    def get_next_field(obj, field):
+        return getattr(obj, field.name)
+
+    def inner(obj):
+        obj = reduce(get_next_field, fields, obj)
+        if last_field.many_to_many:
+            return obj.all()
+        return [obj]
+
+    return inner

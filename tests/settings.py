@@ -3,6 +3,7 @@ HELPER_SETTINGS = {
         "rules",
         "djangocms_fil_permissions",
         "djangocms_fil_permissions.test_utils.polls",
+        "djangocms_fil_permissions.test_utils.restaurants",
     ],
     "MIGRATION_MODULES": {
         "auth": None,
@@ -11,6 +12,7 @@ HELPER_SETTINGS = {
         "sites": None,
         "djangocms_fil_permissions": None,
         "djangocms_fil_permissions.test_utils.polls": None,
+        "djangocms_fil_permissions.test_utils.restaurants": None,
     },
     "AUTHENTICATION_BACKENDS": (
         "djangocms_fil_permissions.permissions.SitePermissionBackend",

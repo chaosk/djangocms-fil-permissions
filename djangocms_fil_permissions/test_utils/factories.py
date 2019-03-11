@@ -6,6 +6,7 @@ from factory.fuzzy import FuzzyText
 
 from ..models import UserSite
 from .polls.models import Answer, Poll
+from .restaurants.models import Pizza, Restaurant
 
 
 class SiteFactory(factory.django.DjangoModelFactory):
@@ -29,6 +30,32 @@ class AnswerFactory(factory.django.DjangoModelFactory):
 
     class Meta:
         model = Answer
+
+
+class RestaurantFactory(factory.django.DjangoModelFactory):
+    text = FuzzyText(length=12)
+
+    class Meta:
+        model = Restaurant
+
+    @factory.post_generation
+    def sites(self, create, extracted, **kwargs):
+        if not create:
+            # Simple build, do nothing.
+            return
+
+        if extracted:
+            # A list of sites were passed in, use them
+            for site in extracted:
+                self.sites.add(site)
+
+
+class PizzaFactory(factory.django.DjangoModelFactory):
+    text = FuzzyText(length=12)
+    restaurant = factory.SubFactory(RestaurantFactory)
+
+    class Meta:
+        model = Pizza
 
 
 class UserFactory(factory.django.DjangoModelFactory):

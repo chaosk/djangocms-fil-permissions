@@ -2,6 +2,7 @@ from unittest.mock import MagicMock, Mock, patch
 
 from django.apps import apps
 from django.contrib import admin
+from django.core.exceptions import ImproperlyConfigured
 from django.test import TestCase
 
 from rules.contrib.admin import ObjectPermissionsModelAdminMixin
@@ -10,16 +11,20 @@ from djangocms_fil_permissions.helpers import (
     _replace_admin_for_model,
     admin_factory,
     get_extension,
-    get_site_for_obj,
+    get_sites_for_obj,
     replace_admin_for_model,
-    user_has_access_to_site,
+    translate_relation,
+    user_can_access_any_of_sites,
 )
 from djangocms_fil_permissions.test_utils.factories import (
+    AnswerFactory,
+    PizzaFactory,
     PollFactory,
     SiteFactory,
     UserSiteFactory,
 )
-from djangocms_fil_permissions.test_utils.polls.models import Poll
+from djangocms_fil_permissions.test_utils.polls.models import Answer, Poll
+from djangocms_fil_permissions.test_utils.restaurants.models import Pizza
 
 
 class GetExtensionTestCase(TestCase):
@@ -50,11 +55,11 @@ class GetExtensionTestCase(TestCase):
 
 
 class HelpersTestCase(TestCase):
-    def test_get_site_for_obj(self):
+    def test_get_sites_for_obj(self):
         poll = PollFactory()
-        self.assertEqual(get_site_for_obj(poll), poll.site)
+        self.assertEqual(get_sites_for_obj(poll), [poll.site])
 
-    def test_get_site_for_obj_not_registered_for_site_permissions(self):
+    def test_get_sites_for_obj_not_registered_for_site_permissions(self):
         poll = PollFactory()
 
         registry_mock = MagicMock()
@@ -63,19 +68,28 @@ class HelpersTestCase(TestCase):
             "djangocms_fil_permissions.helpers.get_extension",
             return_value=Mock(site_permission_models=registry_mock),
         ):
-            self.assertIsNone(get_site_for_obj(poll))
+            self.assertEqual(get_sites_for_obj(poll), [])
         registry_mock.__getitem__.assert_called_once_with(Poll)
 
-    def test_user_has_access_to_site(self):
+    def test_user_can_access_any_of_sites(self):
         usersite = UserSiteFactory()
 
-        self.assertTrue(user_has_access_to_site(usersite.user, usersite.site))
+        self.assertTrue(user_can_access_any_of_sites(usersite.user, [usersite.site]))
 
-    def test_user_has_access_to_site_no_access(self):
+    def test_user_can_access_any_of_sites_partial_overlap(self):
+        usersite = UserSiteFactory()
+        usersite2 = UserSiteFactory(user=usersite.user)
+        site3 = SiteFactory()
+
+        self.assertTrue(
+            user_can_access_any_of_sites(usersite.user, [usersite2.site, site3])
+        )
+
+    def test_user_can_access_any_of_sites_no_access(self):
         usersite = UserSiteFactory()
         site2 = SiteFactory()
 
-        self.assertFalse(user_has_access_to_site(usersite.user, site2))
+        self.assertFalse(user_can_access_any_of_sites(usersite.user, [site2]))
 
     def test_admin_factory(self):
         base_class = type("A", (), {})
@@ -125,3 +139,25 @@ class HelpersAdminSiteTestCase(TestCase):
         new_modeladmin = self.site._registry[Poll]
         self.assertNotEqual(modeladmin, new_modeladmin)
         self.assertTrue(isinstance(new_modeladmin, mixin))
+
+
+class TranslateRelationTestCase(TestCase):
+    def test_not_pointing_to_site(self):
+        with self.assertRaises(
+            ImproperlyConfigured,
+            msg='Relation "poll" does not point to Site model (it targets polls.Poll instead).',
+        ):
+            translate_relation(Answer, "poll")
+
+    def test_fk(self):
+        answer = AnswerFactory()
+        getter = translate_relation(Answer, "poll__site")
+        self.assertEqual(getter(answer), [answer.poll.site])
+
+    def test_m2m(self):
+        sites = SiteFactory.create_batch(3)
+        pizza = PizzaFactory(restaurant__sites=sites)
+        getter = translate_relation(Pizza, "restaurant__sites")
+        self.assertEqual(
+            set(site.pk for site in getter(pizza)), set(site.pk for site in sites)
+        )

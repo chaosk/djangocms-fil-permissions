@@ -1,11 +1,11 @@
 import rules
 
-from .helpers import get_site_for_obj, user_has_access_to_site
+from .helpers import get_sites_for_obj, user_can_access_any_of_sites
 
 
 @rules.predicate
 def has_site_access(user, obj):
-    site = get_site_for_obj(obj)
-    if site is None:
+    sites = get_sites_for_obj(obj)
+    if not sites:
         return True
-    return user_has_access_to_site(user, site)
+    return user_can_access_any_of_sites(user, sites)

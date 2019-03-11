@@ -7,6 +7,7 @@ from django.test import TestCase
 
 from djangocms_fil_permissions import cms_config
 from djangocms_fil_permissions.test_utils.polls.models import Answer, Poll
+from djangocms_fil_permissions.test_utils.restaurants.models import Pizza, Restaurant
 
 
 class CMSConfigTestCase(TestCase):
@@ -34,7 +35,10 @@ class CMSConfigTestCase(TestCase):
             app_config=Mock(label="blah_cms_config"),
         )
 
-        with patch.object(extension, "translate_relation", side_effect=lambda v: v):
+        with patch(
+            "djangocms_fil_permissions.cms_config.translate_relation",
+            side_effect=lambda m, v: v,
+        ):
             extension.configure_app(mocked_cms_config)
 
         self.assertTrue(Answer not in extension.site_permission_models.keys())
@@ -53,17 +57,13 @@ class CMSConfigTestCase(TestCase):
             extension.configure_app(mocked_cms_config)
         configure_models.assert_not_called()
 
-    def test_translate_relation(self):
-        extension = cms_config.PermissionsCMSExtension()
-        getter = extension.translate_relation("foo__bar")
-        mock = Mock()
-        self.assertEqual(getter(mock), mock.foo.bar)
-
     def test_register_model(self):
         extension = cms_config.PermissionsCMSExtension()
-        with patch.object(extension, "translate_relation") as translate_relation:
+        with patch(
+            "djangocms_fil_permissions.cms_config.translate_relation"
+        ) as translate_relation:
             extension.register_model(Poll, "foo__site")
-        translate_relation.assert_called_once_with("foo__site")
+        translate_relation.assert_called_once_with(Poll, "foo__site")
         self.assertEqual(
             extension.site_permission_models[Poll], translate_relation.return_value
         )
@@ -90,8 +90,9 @@ class CMSConfigTestCase(TestCase):
             site_permission_models={Answer: "poll__site"},
             app_config=Mock(label="blah_cms_config"),
         )
-        with patch.object(
-            extension, "translate_relation", side_effect=["site", "poll__site"]
+        with patch(
+            "djangocms_fil_permissions.cms_config.translate_relation",
+            side_effect=["site", "poll__site"],
         ):
             extension.configure_app(cms_config1)
             extension.configure_app(cms_config2)
@@ -104,6 +105,11 @@ class IntegrationTestCase(TestCase):
         site_permission_models = apps.get_app_config(
             "djangocms_fil_permissions"
         ).cms_extension.site_permission_models
-        expected_models = {Poll: attrgetter("site"), Answer: attrgetter("poll.site")}
+        expected_models = {
+            Poll: attrgetter("site"),
+            Answer: attrgetter("poll.site"),
+            Restaurant: attrgetter("sites"),
+            Pizza: attrgetter("restaurant.sites"),
+        }
 
         self.assertCountEqual(site_permission_models.keys(), expected_models)

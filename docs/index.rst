@@ -77,6 +77,11 @@ in your addon's folder. The most simple configuration looks like this:
 In this example, ``Poll`` has a ``site`` field, which is a relation to ``Site``
 model.
 
+.. note::
+
+    Relation to ``Site`` model can be either a foreign key of a many to many
+    field.
+
 :py:class:`CMSAppConfig`
 
     :py:attr:`~djangocms_fil_permissions_enabled`
