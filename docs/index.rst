@@ -79,7 +79,7 @@ model.
 
 .. note::
 
-    Relation to ``Site`` model can be either a foreign key of a many to many
+    Relation to ``Site`` model can be either a foreign key or a many to many
     field.
 
 :py:class:`CMSAppConfig`

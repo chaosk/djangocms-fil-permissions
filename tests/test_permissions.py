@@ -26,16 +26,16 @@ class SmokePermissionsTestCase(TestCase):
 class BasePermissionsTests(metaclass=ABCMeta):
     @property
     @abstractmethod
-    def change_permission(self, site):
+    def change_permission(self):
         pass
 
     @abstractmethod
-    def factory(self, site):
+    def factory(self, *sites):
         pass
 
     def test_has_perm(self):
         usersite = UserSiteFactory()
-        obj = self.factory(site=usersite.site)
+        obj = self.factory(usersite.site)
         self.assertIsNone(
             SitePermissionBackend().has_perm(usersite.user, self.change_permission, obj)
         )
@@ -43,14 +43,14 @@ class BasePermissionsTests(metaclass=ABCMeta):
     def test_has_perm_no_site_access(self):
         usersite = UserSiteFactory()
         site2 = SiteFactory()
-        obj = self.factory(site=site2)
+        obj = self.factory(site2)
         with self.assertRaises(PermissionDenied):
             SitePermissionBackend().has_perm(usersite.user, self.change_permission, obj)
 
     def test_has_perm_not_registered_for_site_permissions(self):
         usersite = UserSiteFactory()
         site2 = SiteFactory()
-        obj = self.factory(site=site2)
+        obj = self.factory(site2)
 
         registry_mock = MagicMock()
         registry_mock.__getitem__.side_effect = KeyError
@@ -72,12 +72,40 @@ class BasePermissionsTests(metaclass=ABCMeta):
 class FKPermissionsTestCase(BasePermissionsTests, TestCase):
     change_permission = "polls.change_poll"
 
-    def factory(self, site):
+    def factory(self, *sites):
+        site = sites[0]
         return PollFactory(site=site)
 
 
-class M2MRulesTestCase(BasePermissionsTests, TestCase):
+class M2MPermissionsTestCase(BasePermissionsTests, TestCase):
     change_permission = "restaurants.change_restaurant"
 
-    def factory(self, site):
-        return RestaurantFactory(sites=[site])
+    def factory(self, *sites):
+        return RestaurantFactory(sites=sites)
+
+    def test_has_perm_to_both_sites(self):
+        usersite = UserSiteFactory()
+        usersite2 = UserSiteFactory(user=usersite.user)
+        obj = self.factory(usersite.site, usersite2.site)
+        self.assertIsNone(
+            SitePermissionBackend().has_perm(usersite.user, self.change_permission, obj)
+        )
+        self.assertIsNone(
+            SitePermissionBackend().has_perm(usersite2.user, self.change_permission, obj)
+        )
+
+    def test_two_sites_has_perm_to_one(self):
+        usersite = UserSiteFactory()
+        site2 = SiteFactory()
+        obj = self.factory(usersite.site, site2)
+        self.assertIsNone(
+            SitePermissionBackend().has_perm(usersite.user, self.change_permission, obj)
+        )
+
+    def test_two_sites_has_perm_no_site_access(self):
+        user = UserFactory()
+        site = SiteFactory()
+        site2 = SiteFactory()
+        obj = self.factory(site, site2)
+        with self.assertRaises(PermissionDenied):
+            SitePermissionBackend().has_perm(user, self.change_permission, obj)

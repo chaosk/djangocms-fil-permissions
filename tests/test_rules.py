@@ -15,26 +15,26 @@ from djangocms_fil_permissions.test_utils.factories import (
 
 class BaseRulesTests(metaclass=ABCMeta):
     @abstractmethod
-    def factory(self, site):
+    def factory(self, *sites):
         pass
 
     def test_has_site_access(self):
         usersite = UserSiteFactory()
-        obj = self.factory(site=usersite.site)
+        obj = self.factory(usersite.site)
 
         self.assertTrue(has_site_access(usersite.user, obj))
 
     def test_has_site_access_no_access(self):
         user = UserFactory()
         site = SiteFactory()
-        obj = self.factory(site=site)
+        obj = self.factory(site)
 
         self.assertFalse(has_site_access(user, obj))
 
     def test_has_site_access_no_site_relation(self):
         user = UserFactory()
         site = SiteFactory()
-        obj = self.factory(site=site)
+        obj = self.factory(site)
 
         with patch(
             "djangocms_fil_permissions.rules.get_sites_for_obj", return_value=None
@@ -47,10 +47,32 @@ class BaseRulesTests(metaclass=ABCMeta):
 
 
 class FKRulesTestCase(BaseRulesTests, TestCase):
-    def factory(self, site):
+    def factory(self, *sites):
+        site = sites[0]
         return PollFactory(site=site)
 
 
 class M2MRulesTestCase(BaseRulesTests, TestCase):
-    def factory(self, site):
-        return RestaurantFactory(sites=[site])
+    def factory(self, *sites):
+        return RestaurantFactory(sites=sites)
+
+    def test_has_site_access_for_both_sites(self):
+        usersite = UserSiteFactory()
+        usersite2 = UserSiteFactory(user=usersite.user)
+        obj = self.factory(usersite.site, usersite2.site)
+
+        self.assertTrue(has_site_access(usersite.user, obj))
+
+    def test_two_sites_has_site_access_for_one(self):
+        usersite = UserSiteFactory()
+        site2 = SiteFactory()
+        obj = self.factory(usersite.site, site2)
+
+        self.assertTrue(has_site_access(usersite.user, obj))
+
+    def test_two_sites_has_site_access_no_site_relation(self):
+        user = UserFactory()
+        site2 = SiteFactory()
+        site3 = SiteFactory()
+        obj = self.factory(site2, site3)
+        self.assertFalse(has_site_access(user, obj))
